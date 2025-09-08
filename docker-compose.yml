@@ -19,11 +19,11 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: e-commerce
+      MYSQL_DATABASE: ecommerce
       MYSQL_USER: laravel
       MYSQL_PASSWORD: laravel
     ports:
-      - "3307:3306" # expose ra local port 3307
+      - "3307:3306" # local machine connect via 3307
     volumes:
       - db_data:/var/lib/mysql
 
