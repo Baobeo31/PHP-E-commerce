@@ -8,9 +8,7 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use App\Services\UserService;
 use App\Services\PasswordService;
-use Exception;
 use Illuminate\Validation\ValidationException;
-use PhpParser\Node\Stmt\Catch_;
 use Throwable;
 
 class UserController extends Controller
@@ -29,7 +27,10 @@ class UserController extends Controller
     {
         try {
             $users = $this->userService->getAllUsers();
-            return new UserResource($users);
+            return response()->json([
+                $users,
+                'message' => 'Thành công'
+            ], 200);
         } catch (AppError $e) {
             return response()->json([
                 'message' => $e->getMessage(),
@@ -58,14 +59,11 @@ class UserController extends Controller
     public function create(RegisterRequest $request)
     {
         try {
-            $data = $request->validate([
-                'name' => 'required|string',
-                'email' => 'required|email|unique:users,email', // kiểm tra bảng users email có trùng k
-                'password' => 'required|string|min:6',
-                'isAdmin' => 'boolean'
-            ]);
+            $data = $request->validated();
+
             $user = $this->userService->createUser($data);
             return response()->json([
+                'user' => $user,
                 'message' => 'Đăng ký thành công. Vui lòng kiểm tra Email để xác nhận',
             ], 201);
         } catch (ValidationException $e) {
@@ -89,11 +87,11 @@ class UserController extends Controller
     public function login(Request $request)
     {
         try {
-            $validate = $request->validate([
+            $data = $request->validate([
                 'email' => 'required|email',
                 'password' => 'required|string|min:6'
             ]); // Xác thực tương đương kiểm tra như Nodejs
-            $user = $this->userService->loginUser($validate['email'], $validate['password']);
+            $user = $this->userService->loginUser($data['email'], $data['password']);
             // dd($user);
             $refreshToken = $user['refresh_token'];
             unset($user['refresh_token']);

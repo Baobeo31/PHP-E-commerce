@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\AppError;
 use App\Http\Requests\ProductRequest;
-use App\Http\Resources\ProductResource;
-use Exception;
 use Illuminate\Http\Request;
-use ProductService;
+use App\Services\ProductService;
 use Throwable;
 
 class ProductController extends Controller
@@ -34,7 +32,7 @@ class ProductController extends Controller
 
       $perpage = $request->query('per_page', 10);
       $product = $this->productService->getAllProduct($filter, $perpage);
-      return ProductResource::collection($product);
+      return response()->json($product);
     } catch (AppError $ex) {
       return $ex->getMessage();
     } catch (\Throwable $th) {
@@ -49,7 +47,8 @@ class ProductController extends Controller
   {
     try {
       $product = $this->productService->getProductById($id);
-      return ProductResource::collection($product);
+      // dd($product);
+      return response()->json($product);
     } catch (AppError $e) {
       return $e->getMessage();
     } catch (\Throwable $th) {
@@ -74,18 +73,36 @@ class ProductController extends Controller
       ], 500);
     }
   }
-  public function edit(ProductRequest $request, $id)
+  public function edit(Request $request, $id)
   {
     try {
-      $data = $request->validated();
-      $product = $this->productService->edit($id, $data);
-      return response()->json($product);
+      $data = $request->validate([
+        "name"        => "sometimes|string|max:255",
+        "price"       => "sometimes|numeric|min:0",
+        "description" => "sometimes|string",
+        "brand"       => "sometimes|string",
+        "image"       => "sometimes|string",
+        "rating"      => "sometimes|numeric|max:5",
+        "countInStock" => "sometimes|numeric|min:0" // fix tên field
+      ]);
+
+      $product = $this->productService->updateProduct($id, $data);
+
+      return response()->json([
+        'success' => true,
+        'message' => 'Product updated successfully',
+        'data'    => $product
+      ]);
     } catch (AppError $e) {
-      return $e->getMessage();
+      return response()->json([
+        'success' => false,
+        'message' => $e->getMessage()
+      ], 400);
     } catch (\Throwable $th) {
       return response()->json([
+        'success' => false,
         'message' => 'Lỗi hệ thống',
-        'error' => $th->getMessage()
+        'error'   => $th->getMessage()
       ], 500);
     }
   }

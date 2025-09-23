@@ -26,6 +26,6 @@ Route::prefix('users')->group(function () {
   Route::post('/create', [UserController::class, 'create']);
   Route::post('/sendOTP', [UserController::class, 'sendOTP']);
   Route::post('/verify', [UserController::class, 'passwordReset']); 
-  
+
   // Route::get('/google', )
 });

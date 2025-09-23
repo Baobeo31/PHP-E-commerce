@@ -34,7 +34,6 @@ class UserService
         'name' => $data['name'],
         'email' => $data['email'],
         'password' => Hash::make($data['password']),
-        'isAdmin' => $data['isAdmin']
       ]);
       $verifyUrl = URL::temporarySignedRoute(
         'verification.verify',
@@ -50,9 +49,7 @@ class UserService
         throw new AppError('Không gửi được email xác thực: ' . $e->getMessage());
       }
       DB::commit();
-      return [
-        'user' => $user,
-      ];
+      return $user;
     } catch (\Throwable $e) {
       DB::rollBack();
       throw $e;
@@ -96,9 +93,9 @@ class UserService
     if (!$user || !Hash::check($password, $user->password)) {
       throw new AppError('Email hoặc mật khẩu không đúng', 401);
     }
-    if (!$user->hasVerifiedEmail()) {
-      throw new AppError('Vui lòng xác thực email trước khi đăng nhập', 403);
-    }
+    // if (!$user->hasVerifiedEmail()) {
+    //   throw new AppError('Vui lòng xác thực email trước khi đăng nhập', 403);
+    // }
     $payload = [
       'id' => $user->id,
       'email' => $user->email,

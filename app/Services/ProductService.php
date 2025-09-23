@@ -1,6 +1,7 @@
 <?php
 
-use App\Exceptions\AppError;
+namespace App\Services;
+
 use App\Models\Product;
 use GuzzleHttp\Psr7\Request;
 use Illuminate\Support\Facades\DB;
@@ -78,33 +79,34 @@ class ProductService
         'image' => $data['image'],
         'description' => $data['description'],
         'rating' => $data['rating'],
+        'countInStock' => $data['countInStock']
       ]);
+      return $product;
       DB::commit();
-    } catch (Throwable $err) {
+    } catch (\Throwable $err) {
       DB::rollBack();
       return $err;
     }
   }
 
-  public function edit($id, array $data)
+  public function updateProduct($id, array $data)
   {
-    Db::beginTransaction();
+    DB::beginTransaction();
     try {
       $product = Product::findOrFail($id);
-      $product->update([
-        'name' => $data['name'],
-        'price' => $data['price'],
-        'brand' => $data['brand'],
-        'image' => $data['image'],
-        'description' => $data['description'],
-        'rating' => $data['rating'],
-      ]);
+
+      $product->update($data);
+
       DB::commit();
-    } catch (Throwable $e) {
+
+      // luôn return fresh object
+      return $product->fresh();
+    } catch (\Throwable $e) {
       DB::rollBack();
-      return $e;
+      throw $e;
     }
   }
+
 
   public function destroy($id)
   {

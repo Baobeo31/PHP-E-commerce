@@ -16,11 +16,11 @@ class Product extends Model
         'rating',
         'brand',
         'image',
-        'countInstock'
+        'countInStock'
     ];
     protected $casts = [
         'price' => 'decimal:2',
         'rating' => 'float',
-        'countInstock' => 'integer'
+        'countInStock' => 'integer'
     ];
 }

@@ -6,7 +6,7 @@ use App\Exceptions\AppError;
 use Dotenv\Exception\ValidationException;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
-use OrderService;
+use App\Services\OrderService;
 
 class OrderController extends Controller
 {
