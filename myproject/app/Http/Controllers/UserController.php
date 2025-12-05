@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\AppError;
-use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\User\LoginRequest;
+use App\Http\Requests\User\RegisterRequest;
 use App\Http\Requests\User\ResetPassRequest;
 use App\Http\Requests\User\UpdateRequest;
 use App\Http\Resources\UserResource;
@@ -88,46 +88,101 @@ class UserController extends Controller
             ], 500);
         }
     }
-
-    public function login(LoginRequest $request)
-    {
-        try {
-            $data = $request->validated();
-            $user = $this->userService->loginUser($data['email'], $data['password']);
-            $refreshToken = $user['refresh_token'];
-            unset($user['refresh_token']);
-
-            $cookie = cookie(
-                'refresh_token',
-                $refreshToken,
-                60 * 24 * 7, //ngay tinh theo phut
-                null,
-                null,
-                app()->environment('production'), //secure khi bật production
-                true, // httponly
-                false,
-                'Strict' //sameSite
-            );
+    // ----- Email verification -----
+public function verifyEmail($id, $token)
+{
+    try {
+        $result = $this->userService->verifyEmail($id, $token);
+        // dd($result);
+        if ($result === true) {
             return response()->json([
-                'message' => 'Thành công',
-                'data' => $user
-            ], 200)->cookie($cookie);
-        } catch (ValidationException $e) {
+                'success' => true,
+                'message' => 'Xác thực email thành công'
+            ]);
+        } elseif ($result === false) {
             return response()->json([
-                'message' => $e->getMessage(),
-                'errors' => $e->errors()
-            ], 422);
-        } catch (AppError $e) {
-            return response()->json([
-                'message' => $e->getMessage()
-            ], $e->getStatusCode());
-        } catch (Throwable $e) {
-            return response()->json([
-                'message' => $e->getMessage()
-            ], 500);
+                'success' => false,
+                'message' => 'Email đã được xác thực trước đó'
+            ], 400);
         }
-        //Đăng nhập
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Liên kết xác thực không hợp lệ hoặc đã hết hạn'
+        ], 400);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
     }
+}
+
+public function resendVerificationEmail(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+
+    try {
+        $this->userService->resendVerificationEmail($request->email);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gửi lại email xác thực thành công'
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
+
+   public function login(LoginRequest $request)
+{
+    try {
+        $data = $request->validated();
+        $user = $this->userService->loginUser($data['email'], $data['password']);
+
+        $refreshToken = $user['refresh_token'];
+        unset($user['refresh_token']); // bỏ token khỏi response body, lưu cookie thay thế
+
+        $cookie = cookie(
+            'refresh_token',
+            $refreshToken,
+            60 * 24 * 7, // 7 ngày tính theo phút
+            null,
+            null,
+            app()->environment('production'), // secure khi production
+            true,  // httpOnly
+            false, // raw
+            'Strict' // sameSite
+        );
+
+        return response()->json([
+            'message' => 'Thành công',
+            'data' => $user
+        ], 200)->cookie($cookie);
+
+    } catch (ValidationException $e) {
+        return response()->json([
+            'message' => $e->getMessage(),
+            'errors' => $e->errors()
+        ], 422);
+    } catch (AppError $e) {
+        return response()->json([
+            'message' => $e->getMessage()
+        ], $e->getStatusCode());
+    } catch (Throwable $e) {
+        return response()->json([
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
 
     public function logout()
     {

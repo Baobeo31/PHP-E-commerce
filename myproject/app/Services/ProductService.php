@@ -9,61 +9,80 @@ use Illuminate\Support\Facades\DB;
 class ProductService
 {
 
-    public function getAllProduct(array $filters = [], $perPage = 10)
-    {
-        $query = Product::query();
-        //Lọc theo tên
-        if (!empty($filters['search'])) {
-            $query->where('name', 'like', '%' . $filters['search'] . '%');
-        }
-        //Lọc theo giá
-        if (!empty($filters['price_min'])) {
-            $query->where('price', '>=', $filters['price_min']);
-        }
-        if (!empty($filters['price_max'])) {
-            $query->where('price', '<=', $filters['price_min']);
-        }
-        if (!empty($filters['rating_min'])) {
-            $query->where('rating', '>=', $filters['rating_min']);
-        }
-        if (!empty($filters['rating_max'])) {
-            $query->where('rating', '<=', $filters['rating_max']);
-        }
-        if (!empty($filters['sort_by'])) {
-            $sortDirection = $filters['sort_direction'] ?? ' asc'; // mặc định asc
-            $query->orderBy($filters['sort_by'], $sortDirection);
-        }
-        if (!empty($filters['sort'])) {
-            switch ($filters('sort')) {
-                case 'name_asc':
-                    $query->orderBy('name', 'asc');
-                    break;
-                case 'name_dsc':
-                    $query->orderBy('name', 'dsc');
-                    break;
-                case 'price_asc':
-                    $query->orderBy('price', 'asc');
-                    break;
-                case 'price_dsc':
-                    $query->orderBy('price', 'dsc');
-                    break;
-                case 'rating_asc':
-                    $query->orderBy('rating', 'asc');
-                    break;
-                case 'rating_dsc':
-                    $query->orderBy('rating', 'dsc');
-                    break;
-                case 'newest';
-                default:
-                    $query->orderBy('created_at', 'desc');
-            }
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
+   public function getAllProduct(array $filters = [], $perPage = 10)
+{
+    $query = Product::query();
 
-        $perPage = min($perPage, 100);
-        return $query->paginate($perPage);
+    // 🔎 Search theo tên
+    if (!empty($filters['search'])) {
+        $query->where('name', 'like', '%' . $filters['search'] . '%');
     }
+
+    // 💸 Lọc theo giá
+    if (!empty($filters['price_min'])) {
+        $query->where('price', '>=', $filters['price_min']);
+    }
+
+    if (!empty($filters['price_max'])) {
+        $query->where('price', '<=', $filters['price_max']); // FIXED
+    }
+
+    if (!empty($filters['rating_min'])) {
+        $query->where('rating', '>=', $filters['rating_min']);
+    }
+
+    if (!empty($filters['rating_max'])) {
+        $query->where('rating', '<=', $filters['rating_max']);
+    }
+    if (!empty($filters['sort_by'])) {
+        $sortDirection = $filters['sort_direction'] ?? 'asc';
+        $query->orderBy($filters['sort_by'], $sortDirection);
+    }
+
+    // 🔥 SORT dạng preset (name_asc, price_desc,...)
+    if (!empty($filters['sort'])) {
+        switch ($filters['sort']) { // FIXED
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+
+            case 'rating_asc':
+                $query->orderBy('rating', 'asc');
+                break;
+
+            case 'rating_desc':
+                $query->orderBy('rating', 'desc');
+                break;
+
+            case 'newest':
+            default:
+                $query->orderBy('created_at', 'desc');
+        }
+    }
+
+    // 🍀 Mặc định sort theo mới nhất nếu không truyền sort
+    if (empty($filters['sort']) && empty($filters['sort_by'])) {
+        $query->orderBy('created_at', 'desc');
+    }
+
+    // Giới hạn per_page
+    $perPage = min($perPage, 8); 
+
+    return $query->paginate($perPage);
+}
+
     public function getProductById($id)
     {
         return Product::findOrFail($id);

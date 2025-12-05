@@ -27,5 +27,7 @@ Route::prefix('users')->group(function () {
   Route::post('/sendOTP', [UserController::class, 'sendOTP']);
   Route::post('/verify', [UserController::class, 'passwordReset']); 
 
-  // Route::get('/google', )
+   // ----- Email verification -----
+   Route::get('/verify-email/{id}/{token}', [UserController::class, 'verifyEmail'])->where('token', '.*'); 
+   Route::post('/resend-verification', [UserController::class, 'resendVerificationEmail']);
 });

@@ -5,14 +5,13 @@ namespace App\Services;
 use App\Exceptions\AppError;
 use App\Mail\VerifyEmailMail;
 use App\Models\User;
+use Carbon\Carbon;
 use Exception;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class UserService
 {
@@ -30,44 +29,83 @@ class UserService
     {
         DB::beginTransaction();
         try {
+            // Tạo token URL-safe, tránh base64
+            $token = Str::random(40);
+            $expiresAt = Carbon::now()->addMinutes(60); // token 1 giờ
+
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
+                'email_verification_token' => $token,
+                'email_verification_expires_at' => $expiresAt,
             ]);
-            $verifyUrl = URL::temporarySignedRoute(
-                'verification.verify',
-                now()->addMinutes(60),
-                [
-                    'id' => $user->id,
-                    'hash' => sha1($user->email)
-                ]
-            ); // tạo 1 URL tạm thời
-            try {
-                Mail::to($user->email)->send(new VerifyEmailMail($verifyUrl)); // gửi mail tới mail vừa nhập
-            } catch (Exception $e) {
-                throw new AppError('Không gửi được email xác thực: ' . $e->getMessage());
-            }
+
+            // Tạo link xác thực trỏ về frontend
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+           $verifyUrl = "{$frontendUrl}/verify-email/{$user->id}/" . urlencode($user->email_verification_token);
+
+
+            // Gửi email
+            Mail::to($user->email)->queue(new VerifyEmailMail($verifyUrl));
+
             DB::commit();
+
             return $user;
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw $e;
+            throw new AppError('Không tạo được user hoặc gửi mail: ' . $e->getMessage());
         }
     }
-    public function verifyEmail($id, $hash)
+
+ public function verifyEmail($id, $hash)
+{
+    $user = User::findOrFail($id);
+    // dd($user);
+    if (!is_null($user->email_verified_at)) {
+        return [
+            'success' => true,
+            'message' => 'Email đã được xác thực trước đó'
+        ];
+    }
+    if ($user->email_verification_token === null) {
+        throw new AppError('Liên kết xác thực không hợp lệ ', 400);
+    }
+    if ($user->email_verification_token !== $hash) {
+        throw new AppError('Liên kết xác thực không hợp lệ hoặc đã hết hạn', 400);
+    }
+    if (Carbon::now()->greaterThan($user->email_verification_expires_at)) {
+        throw new AppError('Liên kết xác thực đã hết hạn', 400);
+    }
+    $user->email_verified_at = now();
+    $user->email_verification_token = null;
+    $user->email_verification_expires_at = null;
+    $user->save();
+    // dd($user);
+    return true;
+}
+
+
+
+    public function resendVerificationEmail($email)
     {
-        $user = User::findOrFail($id);
+        $user = User::where('email', $email)->firstOrFail();
 
-        if (!hash_equals($hash, sha1($user->email))) {
-            throw new AppError('Liên kết không hợp lệ', 400);
+        if (!is_null($user->email_verified_at)) {
+            throw new AppError('Tài khoản này đã được xác thực.', 400);
         }
 
-        if ($user->hasVerifiedEmail()) { // Kiểm tra xem người dùng đã xác thực chưa
-            return false;
-        }
+        $user->email_verification_token = Str::random(64);
+        $user->email_verification_expires_at = Carbon::now()->addMinutes(60);
+        $user->save();
 
-        $user->markEmailAsVerified(); // gửi email thông báo xác thực thành công(Chuyển email_verified_at thành now())
+        // Tạo link xác thực trỏ về frontend
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+       $verifyUrl = "{$frontendUrl}/verify-email/{$user->id}/" . urlencode($user->email_verification_token);
+
+        // Gửi email
+        Mail::to($user->email)->queue(new VerifyEmailMail($verifyUrl));
+
         return true;
     }
     public function updateUser($id, array $data)
@@ -96,14 +134,17 @@ class UserService
         if (!$user->hasVerifiedEmail()) {
             throw new AppError('Vui lòng xác thực email trước khi đăng nhập', 403);
         }
+
         $payload = [
             'id' => $user->id,
             'email' => $user->email,
             'isAdmin' => $user->isAdmin,
-
         ];
+
         $access_token = JwtService::generalAccessToken($payload);
         $refresh_token = JwtService::generalRefreshToken($payload);
+
+        // Trả về array, không dùng response()->json
         return [
             'status' => 'OK',
             'message' => 'Đăng nhập thành công',
@@ -112,6 +153,7 @@ class UserService
             'refresh_token' => $refresh_token
         ];
     }
+
     public function logout()
     {
         Auth::logout();
