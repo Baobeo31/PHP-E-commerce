@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../services/UserService";
 import { useMutationHooks } from "../../hooks/useMutation";
 import type { LoginResponse, LoginRequest } from "../../types/user";
+import { useAuth } from "../../context/AuthContext";
 
 
 interface LoginFormState {
@@ -11,19 +12,19 @@ interface LoginFormState {
 }
 
 const Login: React.FC = () => {
-  const [formData, setFormData] = useState<LoginFormState>({
+  const [formData, setFormData] = useState<LoginFormState>({ 
     email: "",
     password: "",
   });
 
   const navigate = useNavigate();
-
+  const { login } = useAuth();
   // React Query mutation
   const mutation = useMutationHooks<LoginResponse, LoginRequest>(loginUser);
 
   const { error, isPending, isError, mutate } = mutation;
   const [message, setMessage] = useState<string | null>(null);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => { // 
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -46,6 +47,7 @@ const Login: React.FC = () => {
         if (res.data.status === "OK") {
           // Lấy token từ res.data
           localStorage.setItem("access_token", res.data.access_token);
+          login(res.data.access_token, res.data.user);
           // Chuyển hướng
           navigate("/home");
         } else {

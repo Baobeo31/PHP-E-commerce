@@ -1,16 +1,27 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface HeroSectionProps {
-  backgroundImage: string;
+  images: string[];
+  interval?: number; //ms
   children?: React.ReactNode;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ backgroundImage, children }) => {
+const HeroSection: React.FC<HeroSectionProps> = ({ images, interval = 5000, children }) => {
   const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [images.length, interval]);
+
   return (
     <section
       className="relative h-screen bg-cover bg-center flex items-center justify-center text-white"
-      style={{ backgroundImage: `url('${backgroundImage}')` }}
+      style={{ backgroundImage: `url('${images[currentIndex]}')` }}
     >
       <div className="absolute inset-0 bg-black opacity-50"></div>
       <div className="relative z-10 text-center px-4">
