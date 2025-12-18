@@ -1,5 +1,4 @@
 import React from "react";
-import Navbar from "../components/Navbar";
 import HeroSection from "../components/Home/HeroSection";
 import StatisticsSection from "../components/Home/StatisticsSection";
 import FloatingContactButton from "../components/Home/FloatingContactButton";

@@ -7,7 +7,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 border-b border-gray-700 pb-8 mb-8">
           {/* Urban Construct Section */}
-          <div>
+          <div className='text-left'>
             <h3 className="text-xl font-bold text-white mb-4">Urban Construct</h3>
             <p className="text-sm mb-4">
               Với các giải pháp công nghệ tốt nhất, Haravan là tất cả những gì bạn cần để xây dựng thương hiệu online, thành công trong bán lẻ và marketing đột phá.
@@ -16,7 +16,7 @@ const Footer = () => {
           </div>
 
           {/* Contact Section */}
-          <div>
+          <div className='text-left'>
             <h3 className="text-xl font-bold text-white mb-4">Contact</h3>
             <ul className="space-y-2 text-sm">
               <li className="flex items-start">
@@ -43,7 +43,7 @@ const Footer = () => {
           </div>
 
           {/* Links Section */}
-          <div>
+          <div className='text-left'>
             <h3 className="text-xl font-bold text-white mb-4">Links</h3>
             <ul className="space-y-2 text-sm">
               <li><a href="#" className="hover:text-orange-500 transition-colors duration-200">Trang chủ</a></li>
@@ -57,7 +57,7 @@ const Footer = () => {
           </div>
 
           {/* Connect with Us & Newsletter Section */}
-          <div>
+          <div className='text-left'>
             <h3 className="text-xl font-bold text-white mb-4">Kết nối với chúng tôi</h3>
             <div className="flex space-x-3 mb-6">
               <a href="#" className="w-9 h-9 flex items-center justify-center bg-gray-700 rounded-full hover:bg-orange-500 transition-colors duration-200"><FaFacebookF /></a>
