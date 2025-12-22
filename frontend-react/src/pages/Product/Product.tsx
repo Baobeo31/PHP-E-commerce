@@ -90,7 +90,7 @@ const ProductList: React.FC = () => {
         const selectedPriceObjects = priceRanges.filter(range => filters.selectedPrices.includes(range.label));
         minPrice = Math.min(...selectedPriceObjects.map(range => range.min));
         maxPrice = Math.max(...selectedPriceObjects.map(range => range.max));
-        if (maxPrice === Infinity) maxPrice = undefined; // Handle "Above 5M" case
+        if (maxPrice === Infinity) maxPrice = undefined;
       }
 
       if (filters.selectedRatings.length > 0) {
@@ -319,10 +319,8 @@ const ProductList: React.FC = () => {
                     );
                   }
 
-                  // Dấu ...
                   if (end < total - 1) pages.push(<span key="s2" className="px-2 text-gray-600">...</span>);
 
-                  // Trang cuối nếu bị ẩn
                   if (end < total)
                     pages.push(
                       <button

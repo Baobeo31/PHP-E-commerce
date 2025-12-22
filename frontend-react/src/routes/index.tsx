@@ -7,6 +7,7 @@ import Product from "../pages/Product/Product";
 import ProtectedRoute from "../components/ProtectedRoute";
 import PublicRoute from "../components/PublicRoute"; // Sẽ tạo component này
 import ProductDetail from "../pages/ProductDetail/ProductDetail";
+import Cart from "../pages/Cart/Cart";
 
 export const routes = [
     {
@@ -39,10 +40,14 @@ export const routes = [
     },
     {
         path:'/products',
-        element: <ProtectedRoute><Product /></ProtectedRoute>
+        element: <Product />
     },
     {
         path:'/products/:id',
-        element: <ProtectedRoute><ProductDetail /></ProtectedRoute>
+        element:<ProductDetail />
+    },
+    {
+        path:'/cart',
+        element:<Cart />
     }
 ]

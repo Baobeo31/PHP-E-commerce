@@ -1,7 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '../hooks/useQuery'; // Import useQuery hook
+import { getCartItems } from '../services/CartService'; // Import getCartItems
 
 const Navbar: React.FC = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCartPopupOpen, setIsCartPopupOpen] = useState(false);
+  const isLoggedIn = Boolean(localStorage.getItem('access_token')); // Check if user is logged in
+  // Use useQuery to fetch cart items
+  const { data: cartItems, isLoading: loadingCart, isError: cartIsError, error: cartError } = useQuery(
+    ['cartItems'], 
+    getCartItems, 
+    {
+      enabled: isCartPopupOpen, // Only fetch when the cart popup is open
+      staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
+      cacheTime: 10 * 60 * 1000, // Data stays in cache for 10 minutes
+      onError: (err) => {
+        console.error("Error fetching cart data:", err);
+      },
+    }
+  );
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+ const toggleCartPopup = () => {
+  if (!isLoggedIn) {
+    alert("Vui lòng đăng nhập để xem giỏ hàng");
+    return;
+  }
+  setIsCartPopupOpen(!isCartPopupOpen);
+};
+
+
+  const calculateTotalPrice = () => {
+    if (!cartItems) return "0.00";
+    return cartItems
+      .reduce((total, item) => total + parseFloat(item.product.price) * item.quantity, 0)
+      .toFixed(2);
+  };
+
+  const totalCartQuantity = cartItems ? cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0
+  ) : 0;
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 shadow-md">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -139,7 +183,10 @@ const Navbar: React.FC = () => {
             </svg>
           </button>
           <div className="relative">
-            <button className="text-gray-600 hover:text-orange-500 transition duration-300 flex items-center">
+            <button
+              onClick={toggleCartPopup}
+              className="text-gray-600 hover:text-orange-500 transition duration-300 flex items-center"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-6 w-6"
@@ -154,10 +201,69 @@ const Navbar: React.FC = () => {
                   d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
                 />
               </svg>
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
-                0
-              </span>
+              {totalCartQuantity > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
+                  {totalCartQuantity}
+                </span>
+              )}
             </button>
+
+            {isCartPopupOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-2 z-20">
+                <h3 className="text-lg font-semibold px-4 py-2 text-gray-800">
+                  Giỏ hàng của bạn
+                </h3>
+                {loadingCart ? (
+                  <p className="text-gray-600 px-4 py-2">Đang tải giỏ hàng...</p>
+                ) : cartIsError ? (
+                  <p className="text-red-600 px-4 py-2">Lỗi: {cartError?.message || "Không thể tải giỏ hàng."}</p>
+                ) : cartItems && cartItems.length === 0 ? (
+                  <p className="text-gray-600 px-4 py-2">
+                    Không có sản phẩm nào trong giỏ hàng.
+                  </p>
+                ) : (
+                  <>
+                    {cartItems?.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center px-4 py-2 border-b last:border-b-0"
+                      >
+                        <img
+                          src={item.product.image}
+                          alt={item.product.name}
+                          className="w-12 h-12 object-cover rounded-md mr-4"
+                        />
+                        <div className="flex-1">
+                          <p className="text-gray-800 font-medium">
+                            {item.product.name}
+                          </p>
+                          <p className="text-gray-600 text-sm">
+                            {item.quantity} x ${item.product.price}
+                          </p>
+                        </div>
+                        <button className="text-red-500 hover:text-red-700 text-sm">
+                          Xóa
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center px-4 py-2 border-t mt-2">
+                      <span className="text-gray-800 font-semibold">Tổng cộng:</span>
+                      <span className="text-gray-800 font-semibold">
+                        ${calculateTotalPrice()}
+                      </span>
+                    </div>
+                    <div className="px-4 py-2">
+                      <Link
+                        to="/cart"
+                        className="block w-full bg-blue-600 text-white text-center py-2 rounded-md hover:bg-blue-700"
+                      >
+                        Xem giỏ hàng
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <div className="relative group">
             <button className="text-gray-600 hover:text-orange-500 transition duration-300 flex items-center">
@@ -184,6 +290,109 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-gray-700 py-2">
+          <Link
+            to="/products"
+            className="block text-white hover:text-gray-300 px-4 py-2"
+            onClick={toggleMobileMenu}
+          >
+            Sản phẩm
+          </Link>
+          <Link
+            to="/categories"
+            className="block text-white hover:text-gray-300 px-4 py-2"
+            onClick={toggleMobileMenu}
+          >
+            Danh mục
+          </Link>
+          <Link
+            to="/contact"
+            className="block text-white hover:text-gray-300 px-4 py-2"
+            onClick={toggleMobileMenu}
+          >
+            Liên hệ
+          </Link>
+          <Link
+            to="/about"
+            className="block text-white hover:text-gray-300 px-4 py-2"
+            onClick={toggleMobileMenu}
+          >
+            Về chúng tôi
+          </Link>
+          <div className="relative px-4 py-2">
+            <button
+              onClick={toggleCartPopup}
+              className="text-white focus:outline-none relative w-full text-left"
+            >
+              Giỏ hàng
+              {totalCartQuantity > 0 && (
+                <span className="absolute right-4 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center -top-0.5">
+                  {totalCartQuantity}
+                </span>
+              )}
+            </button>
+            {isCartPopupOpen && (
+              <div className="absolute left-0 mt-2 w-full bg-white rounded-md shadow-lg py-2 z-20">
+                <h3 className="text-lg font-semibold px-4 py-2 text-gray-800">
+                  Giỏ hàng của bạn
+                </h3>
+                {loadingCart ? (
+                  <p className="text-gray-600 px-4 py-2">Đang tải giỏ hàng...</p>
+                ) : cartIsError ? (
+                  <p className="text-red-600 px-4 py-2">Lỗi: {cartError?.message || "Không thể tải giỏ hàng."}</p>
+                ) : cartItems && cartItems.length === 0 ? (
+                  <p className="text-gray-600 px-4 py-2">
+                    Không có sản phẩm nào trong giỏ hàng.
+                  </p>
+                ) : (
+                  <>
+                    {cartItems?.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center px-4 py-2 border-b last:border-b-0"
+                      >
+                        <img
+                          src={item.product.image}
+                          alt={item.product.name}
+                          className="w-12 h-12 object-cover rounded-md mr-4"
+                        />
+                        <div className="flex-1">
+                          <p className="text-gray-800 font-medium">
+                            {item.product.name}
+                          </p>
+                          <p className="text-gray-600 text-sm">
+                            {item.quantity} x ${item.product.price}
+                          </p>
+                        </div>
+                        <button className="text-red-500 hover:text-red-700 text-sm">
+                          Xóa
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center px-4 py-2 border-t mt-2">
+                      <span className="text-gray-800 font-semibold">Tổng cộng:</span>
+                      <span className="text-gray-800 font-semibold">
+                        ${calculateTotalPrice()}
+                      </span>
+                    </div>
+                    <div className="px-4 py-2">
+                      <Link
+                        to="/cart"
+                        className="block w-full bg-blue-600 text-white text-center py-2 rounded-md hover:bg-blue-700"
+                      >
+                        Xem giỏ hàng
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

@@ -13,18 +13,15 @@ class ProductService
 {
     $query = Product::query();
 
-    // 🔎 Search theo tên
     if (!empty($filters['search'])) {
         $query->where('name', 'like', '%' . $filters['search'] . '%');
     }
-
-    // 💸 Lọc theo giá
     if (!empty($filters['price_min'])) {
         $query->where('price', '>=', $filters['price_min']);
     }
 
     if (!empty($filters['price_max'])) {
-        $query->where('price', '<=', $filters['price_max']); // FIXED
+        $query->where('price', '<=', $filters['price_max']); 
     }
 
     if (!empty($filters['rating_min'])) {
@@ -39,9 +36,8 @@ class ProductService
         $query->orderBy($filters['sort_by'], $sortDirection);
     }
 
-    // 🔥 SORT dạng preset (name_asc, price_desc,...)
     if (!empty($filters['sort'])) {
-        switch ($filters['sort']) { // FIXED
+        switch ($filters['sort']) { 
             case 'name_asc':
                 $query->orderBy('name', 'asc');
                 break;
@@ -72,7 +68,6 @@ class ProductService
         }
     }
 
-    // 🍀 Mặc định sort theo mới nhất nếu không truyền sort
     if (empty($filters['sort']) && empty($filters['sort_by'])) {
         $query->orderBy('created_at', 'desc');
     }
